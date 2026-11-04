@@ -1,0 +1,28 @@
+name: Build APK
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Build APK
+        run: |
+          ZIP=$(git log -1 --name-only --diff-filter=AM --pretty=format: -- '*.zip' | grep -i '\.zip$' | head -1)
+          [ -z "$ZIP" ] && ZIP=$(ls -t *.zip | head -1)
+          echo "Memakai zip: $ZIP"
+          rm -rf _src && mkdir _src && unzip -q -o "$ZIP" -d _src
+          cd "$(dirname "$(find _src -name gradlew | head -1)")"
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: APK
+          path: _src/**/app/build/outputs/apk/debug/*.apk
